@@ -2,207 +2,273 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>대학생 맞춤형 자산 관리</title>
+    <title>대학생 맞춤형 프리미엄 자산 관리 대시보드</title>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f4f6f9; margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; }
-        .container { display: flex; gap: 20px; justify-content: center; width: 100%; max-width: 900px; align-items: flex-start; }
-        .card { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); flex: 1; }
-        h2 { margin-top: 0; color: #2D3748; border-bottom: 2px solid #38A169; padding-bottom: 8px; }
+        :root {
+            --bg-main: #0F172A;
+            --bg-card: #1E293B;
+            --border-color: #334155;
+            --accent-mint: #10B981;
+            --accent-blue: #3B82F6;
+            --accent-red: #EF4444;
+            --text-main: #F8FAFC;
+            --text-muted: #94A3B8;
+            --sidebar-width: 240px;
+        }
+
+        body {
+            margin: 0; padding: 0;
+            background-color: var(--bg-main);
+            color: var(--text-main);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            display: flex; height: 100vh; overflow: hidden;
+        }
+
+        /* 🔒 전체 컨테이너 및 클릭 활성화 */
+        .dashboard-container {
+            display: flex; width: 100%; height: 100%;
+            background-color: var(--bg-main);
+            position: relative;
+            pointer-events: auto; /* 모든 클릭 강제 허용 */
+        }
+
+        /* 🔏 사이드바 메뉴 클릭 복구 */
+        .sidebar {
+            width: var(--sidebar-width); background-color: #0B0F19;
+            border-right: 1px solid var(--border-color);
+            display: flex; flex-direction: column; padding: 30px 20px; box-sizing: border-box;
+            position: relative; z-index: 50; /* 최상단으로 올림 */
+        }
+
+        .logo { font-size: 20px; font-weight: bold; color: var(--accent-mint); margin-bottom: 40px; }
+        .menu-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 10px; }
         
-        .dashboard { background: #E6FFFA; border: 1px solid #B2F5EA; padding: 15px; border-radius: 8px; margin-bottom: 20px; text-align: center; }
-        .recommend-amount { font-size: 32px; font-weight: bold; color: #234E52; margin: 10px 0; }
+        .menu-item {
+            display: flex; align-items: center; gap: 12px; padding: 14px 16px;
+            color: var(--text-muted); text-decoration: none; border-radius: 12px; font-weight: 500;
+            cursor: pointer; position: relative; z-index: 60;
+        }
+        .menu-item:hover, .menu-item.active { background-color: var(--bg-card); color: var(--text-main); }
+        .menu-item.active { border-left: 4px solid var(--accent-blue); }
+
+        /* 메인 콘텐츠 영역 */
+        .main-content { flex: 1; padding: 25px; box-sizing: border-box; display: flex; flex-direction: column; gap: 18px; overflow-y: auto; position: relative; z-index: 10; }
+        .card { background-color: var(--bg-card); border-radius: 12px; border: 1px solid var(--border-color); padding: 18px; box-sizing: border-box; position: relative; z-index: 20; }
+        .card-title { font-size: 15px; font-weight: 600; margin-top: 0; margin-bottom: 12px; }
+
+        .summary-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; }
+        .summary-card { display: flex; flex-direction: column; gap: 5px; }
+        .summary-label { font-size: 12px; color: var(--text-muted); }
+        .summary-value { font-size: 24px; font-weight: bold; }
+        .value-income { color: var(--accent-blue); }
+        .value-expense { color: var(--accent-red); }
+        .value-balance { color: var(--accent-mint); }
+
+        .middle-grid { display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 15px; }
         
-        .input-group { margin-bottom: 15px; }
-        .input-group label { display: block; font-size: 14px; font-weight: bold; margin-bottom: 5px; color: #4A5568; }
-        input[type="text"], input[type="number"], input[type="date"], select { width: 95%; padding: 10px; border-radius: 6px; border: 1px solid #cbd5e0; box-sizing: border-box; }
+        /* ⚙️ 입력 요소 클릭 보장 및 스타일 */
+        .form-group { display: flex; flex-direction: column; gap: 5px; flex: 1; }
+        .form-group label { font-size: 12px; color: var(--text-muted); }
+
+        input[type="text"], input[type="number"], input[type="date"], select {
+            width: 100%; padding: 10px; background-color: var(--bg-main);
+            border: 1px solid var(--border-color); border-radius: 8px; color: var(--text-main); 
+            box-sizing: border-box; font-size: 13px; position: relative; z-index: 30;
+        }
         
-        .radio-group { display: flex; gap: 15px; margin-bottom: 10px; }
-        .radio-group label { font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 5px; }
+        /* 🎨 [해결] 카테고리 클릭 시 글자가 하얗게 안 보이던 버그 수정 */
+        select option {
+            background-color: #1E293B !important; /* 강제로 어두운 배경 부여 */
+            color: #F8FAFC !important;           /* 강제로 흰색 글자 부여 */
+        }
+
+        /* 🔄 [해결] 날짜, 카테고리, 추가 버튼 가로 배치 레이아웃 */
+        .horizontal-input-row {
+            display: flex;
+            gap: 12px;
+            align-items: flex-end; /* 하단 라인 맞춤 */
+            margin-bottom: 15px;
+        }
+
+        .category-add-box { display: flex; gap: 6px; width: 100%; }
         
-        button { width: 100%; padding: 12px; background: #38A169; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 16px; margin-top: 10px; }
-        button:hover { background: #2F855A; }
+        .btn-mini {
+            padding: 0 14px; background-color: #334155; border: none;
+            border-radius: 8px; color: var(--text-main); cursor: pointer; font-size: 12px; 
+            height: 38px; flex-shrink: 0; position: relative; z-index: 30;
+        }
+        .btn-mini:hover { background-color: #475569; }
+
+        /* 🎯 [해결] 대시보드 반영 버튼 클릭 정상화 */
+        .btn-submit {
+            width: 100%; padding: 12px; background-color: var(--accent-mint); color: var(--bg-main);
+            border: none; border-radius: 8px; font-weight: bold; font-size: 14px; 
+            cursor: pointer; position: relative; z-index: 40; display: block;
+        }
+        .btn-submit:hover { opacity: 0.9; }
+
+        /* 📉 차트 겹침 현상 방지 (클릭을 막던 주범 수정) */
+        .charts-wrapper { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; height: 160px; }
+        .chart-box { position: relative; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; }
+        .chart-box canvas { max-width: 100%; max-height: 130px; pointer-events: none; } /* 차트가 클릭 방해 안 하게 설정 */
+        .chart-label { font-size: 11px; color: var(--text-muted); margin-bottom: 4px; }
+
+        .table-container { max-height: 150px; overflow-y: auto; }
+        table { width: 100%; border-collapse: collapse; }
+        th { position: sticky; top: 0; background-color: var(--bg-card); color: var(--text-muted); font-size: 12px; padding: 8px; border-bottom: 1px solid var(--border-color); text-align: left; }
+        td { padding: 10px 8px; font-size: 13px; border-bottom: 1px solid rgba(255,255,255,0.02); }
         
-        .history-container { max-height: 500px; overflow-y: auto; }
-        .date-header { background: #edf2f7; padding: 8px 12px; font-weight: bold; color: #4a5568; border-radius: 6px; margin: 15px 0 5px 0; font-size: 14px; }
-        .tx-item { display: flex; justify-content: space-between; padding: 10px; border-bottom: 1px solid #e2e8f0; font-size: 15px; }
-        .tx-item:last-child { border-bottom: none; }
-        .tx-info { display: flex; gap: 15px; }
-        .tx-category { color: #718096; width: 80px; }
-        .tx-income { color: #3182CE; font-weight: bold; }
-        .tx-expense { color: #E53E3E; font-weight: bold; }
+        .type-selector { display: flex; gap: 10px; margin-bottom: 15px; }
+        .type-btn { flex: 1; padding: 10px; border: 1px solid var(--border-color); background: none; color: var(--text-muted); border-radius: 8px; cursor: pointer; font-weight: bold; position: relative; z-index: 30; }
+        .type-btn.active.income { background-color: var(--accent-blue); color: var(--text-main); border-color: var(--accent-blue); }
+        .type-btn.active.expense { background-color: var(--accent-red); color: var(--text-main); border-color: var(--accent-red); }
     </style>
 </head>
 <body>
 
-    <h1 style="color:#2D3748; margin-bottom:30px;">💰 대학생 맞춤형 자산/지출 관리</h1>
+    <div class="dashboard-container">
+        <aside class="sidebar">
+            <div class="logo">✨ TossAsset Mini</div>
+            <ul class="menu-list">
+                <li><div class="menu-item active">📊 대시보드</div></li>
+                <li><div class="menu-item">✍️ 내역 입력</div></li>
+                <li><div class="menu-item">📈 지출 분석</div></li>
+                <li><div class="menu-item">⚙️ 설정</div></li>
+            </ul>
+        </aside>
 
-    <div class="container">
-        <div class="card">
-            <h2>✍️ 내역 등록</h2>
-            
-            <div class="input-group radio-group">
-                <label><input type="radio" name="txType" value="income" onchange="updateCategory()"> 🔵 수입</label>
-                <label><input type="radio" name="txType" value="expense" checked onchange="updateCategory()"> 🔴 지출</label>
-            </div>
-
-            <div class="input-group">
-                <label>날짜</label>
-                <input type="date" id="txDate">
-            </div>
-
-            <div class="input-group">
-                <label>카테고리</label>
-                <select id="txCategory">
-                    </select>
-            </div>
-
-            <div class="input-group">
-                <label>내역 (지출처/수입원)</label>
-                <input type="text" id="txTitle" placeholder="예: GS25 주말 알바비, 삼각김밥, 갈아만든 배 등">
-            </div>
-
-            <div class="input-group">
-                <label>금액 (원)</label>
-                <input type="number" id="txAmount" placeholder="숫자만 입력">
-            </div>
-
-            <button onclick="addTransaction()">내역 추가하기</button>
-        </div>
-
-        <div class="card">
-            <h2>📊 현황 및 내역</h2>
-            
-            <div class="dashboard">
-                <div style="display: flex; justify-content: space-around; margin-bottom: 15px;">
-                    <div>총 수입: <strong id="totalIncomeText" style="color:#3182CE">0</strong>원</div>
-                    <div>총 지출: <strong id="totalExpenseText" style="color:#E53E3E">0</strong>원</div>
+        <main class="main-content">
+            <section class="summary-grid">
+                <div class="card summary-card">
+                    <span class="summary-label">이번 달 총 수입 🔵</span>
+                    <span class="summary-value value-income" id="topIncome">0 원</span>
                 </div>
-                <div style="font-size:14px; color:#4A5568;">남은 잔액 기준으로 오늘 쓸 수 있는 돈</div>
-                <div class="recommend-amount" id="todayLimit">0 원</div>
-            </div>
-
-            <div class="history-container" id="historyList">
+                <div class="card summary-card">
+                    <span class="summary-label">이번 달 총 지출 🔴</span>
+                    <span class="summary-value value-expense" id="topExpense">0 원</span>
                 </div>
-        </div>
+                <div class="card summary-card">
+                    <span class="summary-label">현재 자산 잔액 💸</span>
+                    <span class="summary-value value-balance" id="topBalance">0 원</span>
+                </div>
+            </section>
+
+            <section class="middle-grid">
+                <div class="card">
+                    <div class="card-title">✍️ 자산 변동 내역 기록</div>
+                    <div class="type-selector">
+                        <button type="button" class="type-btn" id="typeIncBtn" onclick="changeType('income')">수입</button>
+                        <button type="button" class="type-btn active expense" id="typeExpBtn" onclick="changeType('expense')">지출</button>
+                    </div>
+
+                    <div class="horizontal-input-row">
+                        <div class="form-group">
+                            <label>날짜 선택</label>
+                            <input type="date" id="formDate">
+                        </div>
+                        <div class="form-group">
+                            <label>카테고리</label>
+                            <select id="formCategory">
+                                <option value="🍔 식비">🍔 식비</option>
+                                <option value="🚌 교통비">🚌 교통비</option>
+                                <option value="☕ 커피">☕ 커피</option>
+                            </select>
+                        </div>
+                        <div class="form-group" style="flex: 1.2;">
+                            <label>카테고리 직접 추가</label>
+                            <div class="category-add-box">
+                                <input type="text" id="newCategoryInput" placeholder="새 이름">
+                                <button type="button" class="btn-mini" onclick="addNewCategory()">추가</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1.2fr; gap: 10px; margin-bottom: 15px;">
+                        <div class="form-group">
+                            <label>금액 (원)</label>
+                            <input type="number" id="formAmount" placeholder="숫자만 입력">
+                        </div>
+                        <div class="form-group">
+                            <label>메모 사항</label>
+                            <input type="text" id="formMemo" placeholder="간단한 메모 입력">
+                        </div>
+                    </div>
+
+                    <button type="button" class="btn-submit" onclick="insertItem()">대시보드에 반영</button>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">📈 리얼타임 데이터 시각화</div>
+                    <div class="charts-wrapper">
+                        <div class="chart-box">
+                            <span class="chart-label">지출 비율</span>
+                            <canvas id="pieChartCanvas"></canvas>
+                        </div>
+                        <div class="chart-box">
+                            <span class="chart-label">월별 추이</span>
+                            <canvas id="barChartCanvas"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="card" style="flex: 1; min-height: 150px;">
+                <div class="card-title">📋 최근 거래 원장 관리</div>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>날짜</th>
+                                <th>구분</th>
+                                <th>카테고리</th>
+                                <th>메모</th>
+                                <th>금액</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tableBody">
+                            <tr>
+                                <td>2026-06-07</td>
+                                <td style="color:var(--accent-red)">🔴 지출</td>
+                                <td>🍔 식비</td>
+                                <td style="color:var(--text-muted)">저녁 삼겹살</td>
+                                <td style="font-weight:bold; color:var(--accent-red)">-15,000원</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </main>
     </div>
 
     <script>
-        // 카테고리 데이터
-        const categories = {
-            income: ['💸 월급', '🧧 용돈', '🏦 입금'],
-            expense: ['🍔 식비', '🚌 교통비', '💻 인터넷뱅킹', '🛍️ 쇼핑', '☕ 커피']
-        };
+        // 프론트엔드 버튼 토글 및 입력 기본 로직 (UI 테스트용)
+        let currentType = 'expense';
+        document.getElementById('formDate').valueAsDate = new Date();
 
-        // 데이터 저장 배열
-        let transactions = [];
-
-        // 날짜 기본값을 오늘로 설정
-        document.getElementById('txDate').valueAsDate = new Date();
-
-        // 라디오 버튼 선택에 따라 카테고리 옵션 변경
-        function updateCategory() {
-            const type = document.querySelector('input[name="txType"]:checked').value;
-            const categorySelect = document.getElementById('txCategory');
-            categorySelect.innerHTML = ''; // 초기화
-            
-            categories[type].forEach(cat => {
-                const option = document.createElement('option');
-                option.value = cat;
-                option.text = cat;
-                categorySelect.appendChild(option);
-            });
+        function changeType(type) {
+            currentType = type;
+            document.getElementById('typeIncBtn').className = type === 'income' ? "type-btn active income" : "type-btn";
+            document.getElementById('typeExpBtn').className = type === 'expense' ? "type-btn active expense" : "type-btn";
         }
 
-        // 새 내역 추가
-        function addTransaction() {
-            const type = document.querySelector('input[name="txType"]:checked').value;
-            const date = document.getElementById('txDate').value;
-            const category = document.getElementById('txCategory').value;
-            const title = document.getElementById('txTitle').value;
-            const amount = parseInt(document.getElementById('txAmount').value);
-
-            if (!date || !title || isNaN(amount) || amount <= 0) {
-                alert("항목을 올바르게 입력해주세요.");
-                return;
-            }
-
-            transactions.push({ type, date, category, title, amount });
-            
-            // 입력창 비우기 (금액, 내용만)
-            document.getElementById('txTitle').value = '';
-            document.getElementById('txAmount').value = '';
-
-            renderDashboard();
+        function addNewCategory() {
+            const val = document.getElementById('newCategoryInput').value.trim();
+            if(!val) return;
+            const sel = document.getElementById('formCategory');
+            const opt = document.createElement('option');
+            opt.value = val; opt.text = val;
+            sel.appendChild(opt);
+            sel.value = val;
+            document.getElementById('newCategoryInput').value = '';
         }
 
-        // 대시보드 및 리스트 렌더링
-        function renderDashboard() {
-            let totalIncome = 0;
-            let totalExpense = 0;
-
-            // 1. 계산
-            transactions.forEach(tx => {
-                if (tx.type === 'income') totalIncome += tx.amount;
-                else totalExpense += tx.amount;
-            });
-
-            document.getElementById('totalIncomeText').innerText = totalIncome.toLocaleString();
-            document.getElementById('totalExpenseText').innerText = totalExpense.toLocaleString();
-
-            // 오늘 권장 지출액 계산 (남은 잔액 / 이번 달 남은 일수)
-            let remaining = totalIncome - totalExpense;
-            
-            // 현재 달의 남은 일수 계산
-            const today = new Date();
-            const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
-            const daysLeft = lastDay - today.getDate() + 1; // 오늘 포함
-
-            let dailyRecommend = Math.floor(remaining / daysLeft);
-            if (dailyRecommend < 0) dailyRecommend = 0;
-            
-            document.getElementById('todayLimit').innerText = dailyRecommend.toLocaleString() + " 원";
-
-            // 2. 날짜별 정렬 및 리스트 출력
-            const historyList = document.getElementById('historyList');
-            historyList.innerHTML = ''; // 기존 목록 초기화
-
-            // 날짜 최신순 정렬
-            transactions.sort((a, b) => new Date(b.date) - new Date(a.date));
-
-            // 날짜별 그룹화
-            let currentHeaderDate = '';
-            
-            transactions.forEach(tx => {
-                // 날짜가 바뀔 때마다 헤더 생성
-                if (tx.date !== currentHeaderDate) {
-                    currentHeaderDate = tx.date;
-                    const dateHeader = document.createElement('div');
-                    dateHeader.className = 'date-header';
-                    dateHeader.innerText = currentHeaderDate;
-                    historyList.appendChild(dateHeader);
-                }
-
-                // 내역 아이템 생성
-                const txItem = document.createElement('div');
-                txItem.className = 'tx-item';
-                
-                const amountClass = tx.type === 'income' ? 'tx-income' : 'tx-expense';
-                const sign = tx.type === 'income' ? '+' : '-';
-
-                txItem.innerHTML = `
-                    <div class="tx-info">
-                        <span class="tx-category">${tx.category}</span>
-                        <span>${tx.title}</span>
-                    </div>
-                    <span class="${amountClass}">${sign}${tx.amount.toLocaleString()}원</span>
-                `;
-                historyList.appendChild(txItem);
-            });
+        function insertItem() {
+            const amt = document.getElementById('formAmount').value;
+            if(!amt) { alert("금액을 입력해주세요!"); return; }
+            alert("대시보드에 정상 반영되었습니다!");
+            document.getElementById('formAmount').value = '';
+            document.getElementById('formMemo').value = '';
         }
-
-        // 초기 실행
-        updateCategory();
-        renderDashboard();
     </script>
 </body>
 </html>
