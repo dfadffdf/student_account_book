@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>대학생 맞춤형 자산 관리</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f4f6f9; margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; }
+        .container { display: flex; gap: 20px; justify-content: center; width: 100%; max-width: 900px; align-items: flex-start; }
+        .card { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); flex: 1; }
+        h2 { margin-top: 0; color: #2D3748; border-bottom: 2px solid #38A169; padding-bottom: 8px; }
+        
+        .dashboard { background: #E6FFFA; border: 1px solid #B2F5EA; padding: 15px; border-radius: 8px; margin-bottom: 20px; text-align: center; }
+        .recommend-amount { font-size: 32px; font-weight: bold; color: #234E52; margin: 10px 0; }
+        
+        .input-group { margin-bottom: 15px; }
+        .input-group label { display: block; font-size: 14px; font-weight: bold; margin-bottom: 5px; color: #4A5568; }
+        input[type="text"], input[type="number"], input[type="date"], select { width: 95%; padding: 10px; border-radius: 6px; border: 1px solid #cbd5e0; box-sizing: border-box; }
+        
+        .radio-group { display: flex; gap: 15px; margin-bottom: 10px; }
+        .radio-group label { font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 5px; }
+        
+        button { width: 100%; padding: 12px; background: #38A169; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 16px; margin-top: 10px; }
+        button:hover { background: #2F855A; }
+        
+        .history-container { max-height: 500px; overflow-y: auto; }
+        .date-header { background: #edf2f7; padding: 8px 12px; font-weight: bold; color: #4a5568; border-radius: 6px; margin: 15px 0 5px 0; font-size: 14px; }
+        .tx-item { display: flex; justify-content: space-between; padding: 10px; border-bottom: 1px solid #e2e8f0; font-size: 15px; }
+        .tx-item:last-child { border-bottom: none; }
+        .tx-info { display: flex; gap: 15px; }
+        .tx-category { color: #718096; width: 80px; }
+        .tx-income { color: #3182CE; font-weight: bold; }
+        .tx-expense { color: #E53E3E; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <h1 style="color:#2D3748; margin-bottom:30px;">💰 대학생 맞춤형 자산/지출 관리</h1>
+
+    <div class="container">
+        <div class="card">
+            <h2>✍️ 내역 등록</h2>
+            
+            <div class="input-group radio-group">
+                <label><input type="radio" name="txType" value="income" onchange="updateCategory()"> 🔵 수입</label>
+                <label><input type="radio" name="txType" value="expense" checked onchange="updateCategory()"> 🔴 지출</label>
+            </div>
+
+            <div class="input-group">
+                <label>날짜</label>
+                <input type="date" id="txDate">
+            </div>
+
+            <div class="input-group">
+                <label>카테고리</label>
+                <select id="txCategory">
+                    </select>
+            </div>
+
+            <div class="input-group">
+                <label>내역 (지출처/수입원)</label>
+                <input type="text" id="txTitle" placeholder="예: GS25 주말 알바비, 삼각김밥, 갈아만든 배 등">
+            </div>
+
+            <div class="input-group">
+                <label>금액 (원)</label>
+                <input type="number" id="txAmount" placeholder="숫자만 입력">
+            </div>
+
+            <button onclick="addTransaction()">내역 추가하기</button>
+        </div>
+
+        <div class="card">
+            <h2>📊 현황 및 내역</h2>
+            
+            <div class="dashboard">
+                <div style="display: flex; justify-content: space-around; margin-bottom: 15px;">
+                    <div>총 수입: <strong id="totalIncomeText" style="color:#3182CE">0</strong>원</div>
+                    <div>총 지출: <strong id="totalExpenseText" style="color:#E53E3E">0</strong>원</div>
+                </div>
+                <div style="font-size:14px; color:#4A5568;">남은 잔액 기준으로 오늘 쓸 수 있는 돈</div>
+                <div class="recommend-amount" id="todayLimit">0 원</div>
+            </div>
+
+            <div class="history-container" id="historyList">
+                </div>
+        </div>
+    </div>
+
+    <script>
+        // 카테고리 데이터
+        const categories = {
+            income: ['💸 월급', '🧧 용돈', '🏦 입금'],
+            expense: ['🍔 식비', '🚌 교통비', '💻 인터넷뱅킹', '🛍️ 쇼핑', '☕ 커피']
+        };
+
+        // 데이터 저장 배열
+        let transactions = [];
+
+        // 날짜 기본값을 오늘로 설정
+        document.getElementById('txDate').valueAsDate = new Date();
+
+        // 라디오 버튼 선택에 따라 카테고리 옵션 변경
+        function updateCategory() {
+            const type = document.querySelector('input[name="txType"]:checked').value;
+            const categorySelect = document.getElementById('txCategory');
+            categorySelect.innerHTML = ''; // 초기화
+            
+            categories[type].forEach(cat => {
+                const option = document.createElement('option');
+                option.value = cat;
+                option.text = cat;
+                categorySelect.appendChild(option);
+            });
+        }
+
+        // 새 내역 추가
+        function addTransaction() {
+            const type = document.querySelector('input[name="txType"]:checked').value;
+            const date = document.getElementById('txDate').value;
+            const category = document.getElementById('txCategory').value;
+            const title = document.getElementById('txTitle').value;
+            const amount = parseInt(document.getElementById('txAmount').value);
+
+            if (!date || !title || isNaN(amount) || amount <= 0) {
+                alert("항목을 올바르게 입력해주세요.");
+                return;
+            }
+
+            transactions.push({ type, date, category, title, amount });
+            
+            // 입력창 비우기 (금액, 내용만)
+            document.getElementById('txTitle').value = '';
+            document.getElementById('txAmount').value = '';
+
+            renderDashboard();
+        }
+
+        // 대시보드 및 리스트 렌더링
+        function renderDashboard() {
+            let totalIncome = 0;
+            let totalExpense = 0;
+
+            // 1. 계산
+            transactions.forEach(tx => {
+                if (tx.type === 'income') totalIncome += tx.amount;
+                else totalExpense += tx.amount;
+            });
+
+            document.getElementById('totalIncomeText').innerText = totalIncome.toLocaleString();
+            document.getElementById('totalExpenseText').innerText = totalExpense.toLocaleString();
+
+            // 오늘 권장 지출액 계산 (남은 잔액 / 이번 달 남은 일수)
+            let remaining = totalIncome - totalExpense;
+            
+            // 현재 달의 남은 일수 계산
+            const today = new Date();
+            const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
+            const daysLeft = lastDay - today.getDate() + 1; // 오늘 포함
+
+            let dailyRecommend = Math.floor(remaining / daysLeft);
+            if (dailyRecommend < 0) dailyRecommend = 0;
+            
+            document.getElementById('todayLimit').innerText = dailyRecommend.toLocaleString() + " 원";
+
+            // 2. 날짜별 정렬 및 리스트 출력
+            const historyList = document.getElementById('historyList');
+            historyList.innerHTML = ''; // 기존 목록 초기화
+
+            // 날짜 최신순 정렬
+            transactions.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+            // 날짜별 그룹화
+            let currentHeaderDate = '';
+            
+            transactions.forEach(tx => {
+                // 날짜가 바뀔 때마다 헤더 생성
+                if (tx.date !== currentHeaderDate) {
+                    currentHeaderDate = tx.date;
+                    const dateHeader = document.createElement('div');
+                    dateHeader.className = 'date-header';
+                    dateHeader.innerText = currentHeaderDate;
+                    historyList.appendChild(dateHeader);
+                }
+
+                // 내역 아이템 생성
+                const txItem = document.createElement('div');
+                txItem.className = 'tx-item';
+                
+                const amountClass = tx.type === 'income' ? 'tx-income' : 'tx-expense';
+                const sign = tx.type === 'income' ? '+' : '-';
+
+                txItem.innerHTML = `
+                    <div class="tx-info">
+                        <span class="tx-category">${tx.category}</span>
+                        <span>${tx.title}</span>
+                    </div>
+                    <span class="${amountClass}">${sign}${tx.amount.toLocaleString()}원</span>
+                `;
+                historyList.appendChild(txItem);
+            });
+        }
+
+        // 초기 실행
+        updateCategory();
+        renderDashboard();
+    </script>
+</body>
+</html>
